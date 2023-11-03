@@ -37,17 +37,8 @@ const playerMarker = leaflet.marker(MERRILL_CLASSROOM);
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 
-const sensorButton = document.querySelector("#sensor")!;
-sensorButton.addEventListener("click", () => {
-  navigator.geolocation.watchPosition((position) => {
-    playerMarker.setLatLng(
-      leaflet.latLng(position.coords.latitude, position.coords.longitude)
-    );
-    map.setView(playerMarker.getLatLng());
-  });
-});
-
 let points = 0;
+
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No points yet...";
 
@@ -64,23 +55,40 @@ function makePit(i: number, j: number) {
   ]);
 
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
-
+  let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
   pit.bindPopup(() => {
-    let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
     const container = document.createElement("div");
     container.innerHTML = `
                 <div>There is a pit here at "${i},${j}". It has value <span id="value">${value}</span>.</div>
-                <button id="poke">poke</button>`;
-    const poke = container.querySelector<HTMLButtonElement>("#poke")!;
-    poke.addEventListener("click", () => {
-      value--;
+                <button id="poke">poke</button>
+                <button id="deposit"> deposit </button>`;
+
+    function updateVal() {
       container.querySelector<HTMLSpanElement>("#value")!.innerHTML =
         value.toString();
-      points++;
       statusPanel.innerHTML = `${points} points accumulated`;
+    }
+
+    const poke = container.querySelector<HTMLButtonElement>("#poke")!;
+    poke.addEventListener("click", () => {
+      if (value > 0) {
+        value--;
+        points++;
+        updateVal();
+      }
+    });
+
+    const deposit = container.querySelector<HTMLButtonElement>("#deposit")!;
+    deposit.addEventListener("click", () => {
+      if (points > 0) {
+        value++;
+        points--;
+        updateVal();
+      }
     });
     return container;
   });
+
   pit.addTo(map);
 }
 
