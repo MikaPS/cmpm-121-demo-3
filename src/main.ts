@@ -10,10 +10,9 @@ const MERRILL_CLASSROOM = leaflet.latLng({
 });
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const TILE_DEGREES = 1e-4;
 const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
-
+const TILE_DEGREES = 1e-4;
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
 
 const map = leaflet.map(mapContainer, {
@@ -53,7 +52,6 @@ function makePit(i: number, j: number) {
       MERRILL_CLASSROOM.lng + (j + 1) * TILE_DEGREES,
     ],
   ]);
-
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
   let value = Math.floor(luck([i, j, "initialValue"].toString()) * 100);
   pit.bindPopup(() => {
