@@ -14,12 +14,9 @@ export interface Geocoin {
 export class Geocache {
   coins: Geocoin[];
   cell: Cell;
-  // description: string;
 
   constructor(cell: Cell) {
     this.cell = cell;
-    // this.description = "";
-
     const numInitialCoins = Math.floor(
       luck(["intialCoins", cell.i, cell.j].toString()) * 3
     );
