@@ -12,7 +12,10 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
-
+interface LatLng {
+  lat: number;
+  lng: number;
+}
 let playerLocation = {
   i: 369995,
   j: -1220535,
@@ -35,12 +38,14 @@ const map = leaflet.map(mapContainer, {
 const playerMarker = leaflet.marker(board.getPointForCell(playerLocation));
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
+let playerLocations: LatLng[] = [];
 // Gets real time player location
 map.locate({ setView: true, watch: false, enableHighAccuracy: true });
 map.on("locationfound", (e: L.LocationEvent) => {
   playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
   playerLocation = board.getCellForPoint(e.latlng);
   makeMultiplePits();
+  playerLocations.push(board.getPointForCell(playerLocation));
 });
 
 leaflet
@@ -161,7 +166,7 @@ function makeMultiplePits() {
     }
   }
 }
-
+let lines: L.Polyline[] = [];
 // Moving buttons
 function changePlayerLocation(i: number, j: number) {
   playerLocation.i += i * TILE_DEGREES;
@@ -174,6 +179,10 @@ function changePlayerLocation(i: number, j: number) {
     ],
     GAMEPLAY_ZOOM_LEVEL
   );
+  playerLocations.push(board.getPointForCell(playerLocation));
+  // console.log(playerLocations);
+  let line = leaflet.polyline(playerLocations, { color: "red" }).addTo(map);
+  lines.push(line);
   makeMultiplePits();
 }
 
@@ -198,5 +207,21 @@ east.addEventListener("click", () => {
 const reset = document.querySelector<HTMLDivElement>("#reset")!;
 reset.addEventListener("click", () => {
   cacheMomento.clear();
-  makeMultiplePits();
+  lines.forEach((line) => {
+    line.remove();
+  });
+  lines = [];
+  playerLocations = [];
+  // playerLocations.push(board.getPointForCell(playerLocation));
+
+  // clicking restart keeps players location at wrong place tho?
+  map.locate({ setView: true, watch: false, enableHighAccuracy: true });
+  map.on("locationfound", (e: L.LocationEvent) => {
+    playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
+    playerLocation = board.getCellForPoint(e.latlng);
+    makeMultiplePits();
+    playerLocations.push(board.getPointForCell(playerLocation));
+  });
+
+  // makeMultiplePits();
 });
