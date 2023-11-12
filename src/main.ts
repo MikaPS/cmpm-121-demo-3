@@ -56,7 +56,7 @@ function makePit(i: number, j: number) {
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
   layerGroup.addLayer(pit);
   board.getCellForPoint(bounds.getNorthWest());
-  // Momento!
+  // Momento! If we already have a cache in this location, load it. If not, save the new cache.
   const geocache = new Geocache(board.getCellForPoint(bounds.getNorthWest()));
   const key = board.getCellForPoint(bounds.getNorthWest());
   if (!cacheMomento.has(key)) {
@@ -136,18 +136,16 @@ function makePit(i: number, j: number) {
     );
     return container;
   });
-
-  // pit.addTo(map);
 }
 makeMultiplePits();
 
+// Clear old caches, and generate new ones based on the player's location and a
 function makeMultiplePits() {
   layerGroup.clearLayers();
-  // console.log(playerLocation);
   for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
     for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
+      // Use the location of the cache for the luck so it would be the same no matter what bounds it's in
       const bounds = board.getCellBounds(playerLocation, i, j);
-
       if (luck([bounds.getNorthWest()].toString()) < PIT_SPAWN_PROBABILITY) {
         makePit(i, j);
         layerGroup.addTo(map);
@@ -158,23 +156,6 @@ function makeMultiplePits() {
 
 // Moving buttons
 function changePlayerLocation(i: number, j: number) {
-  // console.log(i, j, playerLocation.i, playerLocation.j);
-  // for (let iPit = -playerLocation.i; iPit < i; iPit++) {
-  //   for (let jPit = -playerLocation.j; jPit < j; jPit++) {
-  //     if (luck([iPit, jPit].toString()) < PIT_SPAWN_PROBABILITY) {
-  //       makePit(iPit, jPit);
-  //       layerGroup.addTo(map);
-  //     }
-  //   }
-  // }
-  // console.log(playerLocation.toString());
-  // for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-  //   if (luck([i, j].toString()) < PIT_SPAWN_PROBABILITY) {
-  //     makePit(NEIGHBORHOOD_SIZE * i, j);
-  //     layerGroup.addTo(map);
-  //   }
-  // }
-
   playerLocation.i += i * TILE_DEGREES;
   playerLocation.j += j * TILE_DEGREES;
   playerMarker.setLatLng(board.getPointForCell(playerLocation));
@@ -185,9 +166,9 @@ function changePlayerLocation(i: number, j: number) {
     ],
     GAMEPLAY_ZOOM_LEVEL
   );
-  // layerGroup.clearLayers();
   makeMultiplePits();
 }
+
 const north = document.querySelector<HTMLDivElement>("#north")!;
 north.addEventListener("click", () => {
   changePlayerLocation(1, 0);
