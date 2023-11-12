@@ -9,7 +9,7 @@ import { Geocoin } from "./board";
 import { Cell } from "./board";
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const NEIGHBORHOOD_SIZE = 8;
+const NEIGHBORHOOD_SIZE = 1;
 const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
 
@@ -61,10 +61,13 @@ function makePit(i: number, j: number) {
   console.log("key: ", key);
   if (!cacheMomento.has(key)) {
     cacheMomento.set(key, geocache.toMomento());
-    console.log("cahces momento: ", cacheMomento);
+    console.log("new key...", cacheMomento);
+    // console.log("cahces momento: ", cacheMomento);
   } else {
     geocache.fromMomento(cacheMomento.get(key)!);
+    console.log("old key...", geocache);
   }
+  console.log("cahces momento: ", cacheMomento);
 
   pit.bindPopup(() => {
     const container = document.createElement("div");
