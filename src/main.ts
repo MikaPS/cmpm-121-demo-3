@@ -13,22 +13,33 @@ const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
 
-const playerLocation = {
+let playerLocation = {
   i: 369995,
   j: -1220535,
 };
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
+
 // Creating a board with cells
 const board = new Board(NEIGHBORHOOD_SIZE, GAMEPLAY_ZOOM_LEVEL);
 
 const map = leaflet.map(mapContainer, {
-  center: board.getPointForCell(playerLocation),
   zoom: GAMEPLAY_ZOOM_LEVEL,
   minZoom: GAMEPLAY_ZOOM_LEVEL,
   maxZoom: GAMEPLAY_ZOOM_LEVEL,
   zoomControl: false,
   scrollWheelZoom: false,
+});
+
+const playerMarker = leaflet.marker(board.getPointForCell(playerLocation));
+playerMarker.bindTooltip("That's you!");
+playerMarker.addTo(map);
+
+map.locate({ setView: true, watch: false, enableHighAccuracy: true });
+map.on("locationfound", (e: L.LocationEvent) => {
+  playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
+  playerLocation = board.getCellForPoint(e.latlng);
+  makeMultiplePits();
 });
 
 leaflet
@@ -38,10 +49,6 @@ leaflet
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   })
   .addTo(map);
-
-const playerMarker = leaflet.marker(board.getPointForCell(playerLocation));
-playerMarker.bindTooltip("That's you!");
-playerMarker.addTo(map);
 
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
@@ -137,7 +144,7 @@ function makePit(i: number, j: number) {
     return container;
   });
 }
-makeMultiplePits();
+// makeMultiplePits();
 
 // Clear old caches, and generate new ones based on the player's location and a
 function makeMultiplePits() {
