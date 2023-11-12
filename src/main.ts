@@ -31,10 +31,11 @@ const map = leaflet.map(mapContainer, {
   scrollWheelZoom: false,
 });
 
+// Shows player's location on map
 const playerMarker = leaflet.marker(board.getPointForCell(playerLocation));
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
-
+// Gets real time player location
 map.locate({ setView: true, watch: false, enableHighAccuracy: true });
 map.on("locationfound", (e: L.LocationEvent) => {
   playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
@@ -191,4 +192,11 @@ west.addEventListener("click", () => {
 const east = document.querySelector<HTMLDivElement>("#east")!;
 east.addEventListener("click", () => {
   changePlayerLocation(0, 1);
+});
+
+// Sensor button, reset caches through the momento
+const reset = document.querySelector<HTMLDivElement>("#reset")!;
+reset.addEventListener("click", () => {
+  cacheMomento.clear();
+  makeMultiplePits();
 });
