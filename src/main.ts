@@ -9,7 +9,7 @@ import { Geocoin } from "./board";
 import { Cell } from "./board";
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const NEIGHBORHOOD_SIZE = 1;
+const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
 
@@ -56,18 +56,14 @@ function makePit(i: number, j: number) {
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
   layerGroup.addLayer(pit);
   board.getCellForPoint(bounds.getNorthWest());
+  // Momento!
   const geocache = new Geocache(board.getCellForPoint(bounds.getNorthWest()));
   const key = board.getCellForPoint(bounds.getNorthWest());
-  console.log("key: ", key);
   if (!cacheMomento.has(key)) {
     cacheMomento.set(key, geocache.toMomento());
-    console.log("new key...", cacheMomento);
-    // console.log("cahces momento: ", cacheMomento);
   } else {
     geocache.fromMomento(cacheMomento.get(key)!);
-    console.log("old key...", geocache);
   }
-  console.log("cahces momento: ", cacheMomento);
 
   pit.bindPopup(() => {
     const container = document.createElement("div");
@@ -150,10 +146,9 @@ function makeMultiplePits() {
   // console.log(playerLocation);
   for (let i = -NEIGHBORHOOD_SIZE; i < NEIGHBORHOOD_SIZE; i++) {
     for (let j = -NEIGHBORHOOD_SIZE; j < NEIGHBORHOOD_SIZE; j++) {
-      if (
-        luck([playerLocation.i, playerLocation.j, i, j].toString()) <
-        PIT_SPAWN_PROBABILITY
-      ) {
+      const bounds = board.getCellBounds(playerLocation, i, j);
+
+      if (luck([bounds.getNorthWest()].toString()) < PIT_SPAWN_PROBABILITY) {
         makePit(i, j);
         layerGroup.addTo(map);
       }
