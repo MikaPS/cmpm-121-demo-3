@@ -28,7 +28,7 @@ let mySavedData: SavedData = {
 };
 
 function saveData() {
-  console.log(collectedCoinsList);
+  // console.log(collectedCoinsList);
   const dataToSave: SavedData = {
     savedMomentoMap: cacheMomento,
     savedCollectedCoinsList: collectedCoinsList,
@@ -41,9 +41,9 @@ function loadData() {
   const savedData = localStorage.getItem("savedData");
   if (savedData) {
     mySavedData = JSON.parse(savedData);
-    console.log("saved data: ", mySavedData);
+    // console.log("saved data: ", mySavedData);
   } else {
-    console.log("here");
+    // console.log("here");
     // If no saved data is found, initialize with default values
     mySavedData = {
       savedMomentoMap: new Map<Cell, string>(),
@@ -70,7 +70,7 @@ let collectedCoinsList: Geocoin[] = [];
 loadData();
 playerLocation = mySavedData.savedPlayerLocation;
 // cacheMomento = mySavedData.savedMomentoMap;
-console.log(cacheMomento);
+// console.log(cacheMomento);
 collectedCoinsList = mySavedData.savedCollectedCoinsList;
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
@@ -217,7 +217,7 @@ function makeMultiplePits() {
 let lines: L.Polyline[] = [];
 // Moving buttons
 function changePlayerLocation(i: number, j: number) {
-  console.log(playerLocation);
+  // console.log(playerLocation);
   playerLocation.i += i * TILE_DEGREES;
   playerLocation.j += j * TILE_DEGREES;
   playerMarker.setLatLng(board.getPointForCell(playerLocation));
@@ -274,11 +274,31 @@ sensor.addEventListener("click", () => {
     playerLocations.pop();
   }
   // Gets real time player location
-  map.locate({ setView: true, watch: true, enableHighAccuracy: true });
-  map.on("locationfound", (e: L.LocationEvent) => {
-    playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
-    playerLocation = board.getCellForPoint(e.latlng);
+  //   map.locate({ setView: true, watch: true, enableHighAccuracy: true });
+  //   map.on("locationfound", (e: L.LocationEvent) => {
+  //     playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
+  //     playerLocation = board.getCellForPoint(e.latlng);
+  //     makeMultiplePits();
+  //     playerLocations.push(board.getPointForCell(playerLocation));
+  //   });
+  navigator.geolocation.watchPosition((position) => {
+    // console.log("watch pos", position.coords);
+    const { latitude, longitude } = position.coords;
+    playerMarker.setLatLng([latitude, longitude]);
+    const cell: leaflet.LatLng = leaflet.latLng(latitude, longitude);
+    playerLocation = board.getCellForPoint(cell);
     makeMultiplePits();
     playerLocations.push(board.getPointForCell(playerLocation));
+    let line = leaflet.polyline(playerLocations, { color: "red" }).addTo(map);
+    lines.push(line);
+    map.setView(cell);
   });
+  // navigator.geolocation.getCurrentPosition((position) => {
+  //   const { latitude, longitude } = position.coords;
+  //   playerMarker.setLatLng([latitude, longitude]);
+  //   const cell: leaflet.LatLng = leaflet.latLng(latitude, longitude);
+  //   playerLocation = board.getCellForPoint(cell);
+  //   makeMultiplePits();
+  //   playerLocations.push(board.getPointForCell(playerLocation));
+  // });
 });
