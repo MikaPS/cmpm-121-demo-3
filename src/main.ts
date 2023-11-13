@@ -253,6 +253,7 @@ east.addEventListener("click", () => {
   changePlayerLocation(0, 1);
 });
 
+let watchId = 0;
 // Reset button, reset caches through the momento
 const reset = document.querySelector<HTMLDivElement>("#reset")!;
 reset.addEventListener("click", () => {
@@ -263,7 +264,12 @@ reset.addEventListener("click", () => {
   lines = [];
   playerLocations = [];
   playerLocations.push(board.getPointForCell(playerLocation));
-  makeMultiplePits();
+  collectedCoinsList = [];
+  collectedCoinsString = "";
+  statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
+  navigator.geolocation.clearWatch(watchId);
+
+  // makeMultiplePits();
 });
 
 // Sensor button, gets the player's current location
@@ -281,24 +287,16 @@ sensor.addEventListener("click", () => {
   //     makeMultiplePits();
   //     playerLocations.push(board.getPointForCell(playerLocation));
   //   });
-  navigator.geolocation.watchPosition((position) => {
+  watchId = navigator.geolocation.watchPosition((position) => {
     // console.log("watch pos", position.coords);
     const { latitude, longitude } = position.coords;
-    playerMarker.setLatLng([latitude, longitude]);
     const cell: leaflet.LatLng = leaflet.latLng(latitude, longitude);
+    map.setView(cell);
+    playerMarker.setLatLng([latitude, longitude]);
     playerLocation = board.getCellForPoint(cell);
-    makeMultiplePits();
     playerLocations.push(board.getPointForCell(playerLocation));
     let line = leaflet.polyline(playerLocations, { color: "red" }).addTo(map);
     lines.push(line);
-    map.setView(cell);
+    makeMultiplePits();
   });
-  // navigator.geolocation.getCurrentPosition((position) => {
-  //   const { latitude, longitude } = position.coords;
-  //   playerMarker.setLatLng([latitude, longitude]);
-  //   const cell: leaflet.LatLng = leaflet.latLng(latitude, longitude);
-  //   playerLocation = board.getCellForPoint(cell);
-  //   makeMultiplePits();
-  //   playerLocations.push(board.getPointForCell(playerLocation));
-  // });
 });
