@@ -14,6 +14,7 @@ const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
 const layerGroup = leaflet.layerGroup();
 let cacheMomento = new Map<Cell, string>();
+let isPopupOpen = false;
 
 // Local storage
 interface SavedData {
@@ -125,6 +126,7 @@ function makePit(i: number, j: number) {
   } else {
     geocache.fromMomento(cacheMomento.get(key)!);
   }
+
   pit.bindPopup(() => {
     const container = document.createElement("div");
     container.innerHTML = `
@@ -195,7 +197,14 @@ function makePit(i: number, j: number) {
       board.getCellForPoint(bounds.getNorthWest()),
       geocache.toMomento()
     );
+
     return container;
+  });
+  pit.on("popupclose", () => {
+    isPopupOpen = false;
+  });
+  pit.on("popupopen", () => {
+    isPopupOpen = true;
   });
 }
 // makeMultiplePits();
@@ -253,7 +262,6 @@ east.addEventListener("click", () => {
   changePlayerLocation(0, 1);
 });
 
-let watchId = 0;
 // Reset button, reset caches through the momento
 const reset = document.querySelector<HTMLDivElement>("#reset")!;
 reset.addEventListener("click", () => {
@@ -267,7 +275,6 @@ reset.addEventListener("click", () => {
   collectedCoinsList = [];
   collectedCoinsString = "";
   statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
-  navigator.geolocation.clearWatch(watchId);
 
   // makeMultiplePits();
 });
@@ -287,16 +294,26 @@ sensor.addEventListener("click", () => {
   //     makeMultiplePits();
   //     playerLocations.push(board.getPointForCell(playerLocation));
   //   });
-  watchId = navigator.geolocation.watchPosition((position) => {
-    // console.log("watch pos", position.coords);
-    const { latitude, longitude } = position.coords;
-    const cell: leaflet.LatLng = leaflet.latLng(latitude, longitude);
-    map.setView(cell);
-    playerMarker.setLatLng([latitude, longitude]);
-    playerLocation = board.getCellForPoint(cell);
-    playerLocations.push(board.getPointForCell(playerLocation));
-    let line = leaflet.polyline(playerLocations, { color: "red" }).addTo(map);
-    lines.push(line);
-    makeMultiplePits();
-  });
+  getCurrentLocation();
+  setInterval(getCurrentLocation, 1000);
 });
+
+function getCurrentLocation() {
+  console.log("here, pop up open?", isPopupOpen);
+  if (!isPopupOpen) {
+    navigator.geolocation.getCurrentPosition((position) => {
+      // console.log("watch pos", position.coords);
+      const { latitude, longitude } = position.coords;
+      const cell: leaflet.LatLng = leaflet.latLng(latitude, longitude);
+
+      map.setView(cell);
+
+      playerMarker.setLatLng([latitude, longitude]);
+      playerLocation = board.getCellForPoint(cell);
+      playerLocations.push(board.getPointForCell(playerLocation));
+      let line = leaflet.polyline(playerLocations, { color: "red" }).addTo(map);
+      lines.push(line);
+      makeMultiplePits();
+    });
+  }
+}
