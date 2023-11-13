@@ -34,11 +34,6 @@ export class Geocache implements Momento<string> {
   toMomento() {
     let s = `${this.cell.i}:${this.cell.j}|`;
     this.coins.forEach((coin) => {
-      // console.log(
-      //   "coin: ",
-      //   `${coin.mintingLocation.i}:${coin.mintingLocation.j}:${coin.serialNumber}|`
-      // );
-
       s += `${coin.mintingLocation.i}:${coin.mintingLocation.j}:${coin.serialNumber}|`;
     });
     return s;

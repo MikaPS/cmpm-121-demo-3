@@ -12,6 +12,50 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const NEIGHBORHOOD_SIZE = 8;
 const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
+const layerGroup = leaflet.layerGroup();
+let cacheMomento = new Map<Cell, string>();
+
+// Local storage
+interface SavedData {
+  savedMomentoMap: Map<Cell, string>;
+  savedCollectedCoinsList: Geocoin[];
+  savedPlayerLocation: Cell;
+}
+let mySavedData: SavedData = {
+  savedMomentoMap: new Map<Cell, string>(),
+  savedCollectedCoinsList: [],
+  savedPlayerLocation: { i: 369995, j: -1220535 },
+};
+
+function saveData() {
+  console.log(collectedCoinsList);
+  const dataToSave: SavedData = {
+    savedMomentoMap: cacheMomento,
+    savedCollectedCoinsList: collectedCoinsList,
+    savedPlayerLocation: playerLocation,
+  };
+  localStorage.setItem("savedData", JSON.stringify(dataToSave));
+}
+
+function loadData() {
+  const savedData = localStorage.getItem("savedData");
+  if (savedData) {
+    mySavedData = JSON.parse(savedData);
+    console.log("saved data: ", mySavedData);
+  } else {
+    console.log("here");
+    // If no saved data is found, initialize with default values
+    mySavedData = {
+      savedMomentoMap: new Map<Cell, string>(),
+      savedCollectedCoinsList: [],
+      savedPlayerLocation: {
+        i: 369995,
+        j: -1220535,
+      },
+    };
+  }
+}
+
 interface LatLng {
   lat: number;
   lng: number;
@@ -21,32 +65,34 @@ let playerLocation = {
   j: -1220535,
 };
 
-const mapContainer = document.querySelector<HTMLElement>("#map")!;
+let collectedCoinsList: Geocoin[] = [];
 
+loadData();
+playerLocation = mySavedData.savedPlayerLocation;
+// cacheMomento = mySavedData.savedMomentoMap;
+console.log(cacheMomento);
+collectedCoinsList = mySavedData.savedCollectedCoinsList;
+
+const mapContainer = document.querySelector<HTMLElement>("#map")!;
 // Creating a board with cells
 const board = new Board(NEIGHBORHOOD_SIZE, GAMEPLAY_ZOOM_LEVEL);
-
 const map = leaflet.map(mapContainer, {
+  center: board.getPointForCell(playerLocation),
   zoom: GAMEPLAY_ZOOM_LEVEL,
   minZoom: GAMEPLAY_ZOOM_LEVEL,
   maxZoom: GAMEPLAY_ZOOM_LEVEL,
   zoomControl: false,
   scrollWheelZoom: false,
 });
-
+makeMultiplePits();
 // Shows player's location on map
 const playerMarker = leaflet.marker(board.getPointForCell(playerLocation));
 playerMarker.bindTooltip("That's you!");
 playerMarker.addTo(map);
 let playerLocations: LatLng[] = [];
-// Gets real time player location
-map.locate({ setView: true, watch: false, enableHighAccuracy: true });
-map.on("locationfound", (e: L.LocationEvent) => {
-  playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
-  playerLocation = board.getCellForPoint(e.latlng);
-  makeMultiplePits();
-  playerLocations.push(board.getPointForCell(playerLocation));
-});
+// Merrill classroom unless clicknig on sensor button
+makeMultiplePits();
+playerLocations.push(board.getPointForCell(playerLocation));
 
 leaflet
   .tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -58,12 +104,14 @@ leaflet
 
 const statusPanel = document.querySelector<HTMLDivElement>("#statusPanel")!;
 statusPanel.innerHTML = "No coins yet...";
-let collectedCoinsList: Geocoin[] = [];
-let collectedCoinsString: string;
+let collectedCoinsString: string = "";
+collectedCoinsList.forEach((coin) => {
+  collectedCoinsString +=
+    `${coin.mintingLocation.i}:${coin.mintingLocation.j}#${coin.serialNumber}` +
+    "<br><br>";
+});
+statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
 
-let cacheMomento = new Map<Cell, string>();
-
-const layerGroup = leaflet.layerGroup();
 function makePit(i: number, j: number) {
   const bounds = board.getCellBounds(playerLocation, i, j);
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
@@ -77,7 +125,6 @@ function makePit(i: number, j: number) {
   } else {
     geocache.fromMomento(cacheMomento.get(key)!);
   }
-
   pit.bindPopup(() => {
     const container = document.createElement("div");
     container.innerHTML = `
@@ -133,6 +180,7 @@ function makePit(i: number, j: number) {
           "<br><br>";
       });
       statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
+      saveData();
     }
 
     const deposit = container.querySelector<HTMLButtonElement>("#deposit")!;
@@ -169,6 +217,7 @@ function makeMultiplePits() {
 let lines: L.Polyline[] = [];
 // Moving buttons
 function changePlayerLocation(i: number, j: number) {
+  console.log(playerLocation);
   playerLocation.i += i * TILE_DEGREES;
   playerLocation.j += j * TILE_DEGREES;
   playerMarker.setLatLng(board.getPointForCell(playerLocation));
@@ -184,6 +233,7 @@ function changePlayerLocation(i: number, j: number) {
   let line = leaflet.polyline(playerLocations, { color: "red" }).addTo(map);
   lines.push(line);
   makeMultiplePits();
+  saveData();
 }
 
 const north = document.querySelector<HTMLDivElement>("#north")!;
@@ -203,7 +253,7 @@ east.addEventListener("click", () => {
   changePlayerLocation(0, 1);
 });
 
-// Sensor button, reset caches through the momento
+// Reset button, reset caches through the momento
 const reset = document.querySelector<HTMLDivElement>("#reset")!;
 reset.addEventListener("click", () => {
   cacheMomento.clear();
@@ -212,16 +262,23 @@ reset.addEventListener("click", () => {
   });
   lines = [];
   playerLocations = [];
-  // playerLocations.push(board.getPointForCell(playerLocation));
+  playerLocations.push(board.getPointForCell(playerLocation));
+  makeMultiplePits();
+});
 
-  // clicking restart keeps players location at wrong place tho?
-  map.locate({ setView: true, watch: false, enableHighAccuracy: true });
+// Sensor button, gets the player's current location
+const sensor = document.querySelector<HTMLDivElement>("#sensor")!;
+sensor.addEventListener("click", () => {
+  // If the first movement is clicking the sensor, delete the location of the merrill classroom
+  if (playerLocation.i == 369995 && playerLocation.j == -1220535) {
+    playerLocations.pop();
+  }
+  // Gets real time player location
+  map.locate({ setView: true, watch: true, enableHighAccuracy: true });
   map.on("locationfound", (e: L.LocationEvent) => {
     playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
     playerLocation = board.getCellForPoint(e.latlng);
     makeMultiplePits();
     playerLocations.push(board.getPointForCell(playerLocation));
   });
-
-  // makeMultiplePits();
 });
