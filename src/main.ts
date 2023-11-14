@@ -9,29 +9,29 @@ import { Geocoin } from "./board";
 import { Cell } from "./board";
 
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const NEIGHBORHOOD_SIZE = 8;
+const NEIGHBORHOOD_SIZE = 2;
 const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
 const layerGroup = leaflet.layerGroup();
-let cacheMomento = new Map<Cell, string>();
+let cacheMomento = new Map<String, string>();
 let isPopupOpen = false;
 
 // Local storage
 interface SavedData {
-  savedMomentoMap: Map<Cell, string>;
+  savedMomentoMap: [String, string][];
   savedCollectedCoinsList: Geocoin[];
   savedPlayerLocation: Cell;
 }
 let mySavedData: SavedData = {
-  savedMomentoMap: new Map<Cell, string>(),
+  savedMomentoMap: [],
   savedCollectedCoinsList: [],
   savedPlayerLocation: { i: 369995, j: -1220535 },
 };
 
 function saveData() {
-  // console.log(collectedCoinsList);
+  const momentoArray = Array.from(cacheMomento);
   const dataToSave: SavedData = {
-    savedMomentoMap: cacheMomento,
+    savedMomentoMap: momentoArray,
     savedCollectedCoinsList: collectedCoinsList,
     savedPlayerLocation: playerLocation,
   };
@@ -42,12 +42,12 @@ function loadData() {
   const savedData = localStorage.getItem("savedData");
   if (savedData) {
     mySavedData = JSON.parse(savedData);
+    cacheMomento = new Map(mySavedData.savedMomentoMap);
+
     // console.log("saved data: ", mySavedData);
   } else {
-    // console.log("here");
-    // If no saved data is found, initialize with default values
     mySavedData = {
-      savedMomentoMap: new Map<Cell, string>(),
+      savedMomentoMap: [],
       savedCollectedCoinsList: [],
       savedPlayerLocation: {
         i: 369995,
@@ -70,9 +70,19 @@ let collectedCoinsList: Geocoin[] = [];
 
 loadData();
 playerLocation = mySavedData.savedPlayerLocation;
-// cacheMomento = mySavedData.savedMomentoMap;
-// console.log(cacheMomento);
 collectedCoinsList = mySavedData.savedCollectedCoinsList;
+
+// console.log("first map after laod ", new Map(mySavedData.savedMomentoMap));
+// cacheMomento = new Map(mySavedData.savedMomentoMap); // new Map<Cell, string>();
+// console.log(cacheMomento);
+
+// if (
+//   Object.keys(cacheMomento).length == 0 ||
+//   cacheMomento == null ||
+//   cacheMomento == undefined
+// ) {
+//   cacheMomento = new Map<Cell, string>();
+// }
 
 const mapContainer = document.querySelector<HTMLElement>("#map")!;
 // Creating a board with cells
@@ -85,7 +95,6 @@ const map = leaflet.map(mapContainer, {
   zoomControl: false,
   scrollWheelZoom: false,
 });
-makeMultiplePits();
 // Shows player's location on map
 const playerMarker = leaflet.marker(board.getPointForCell(playerLocation));
 playerMarker.bindTooltip("That's you!");
@@ -113,6 +122,18 @@ collectedCoinsList.forEach((coin) => {
 });
 statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
 
+// function areCellsEqual(cell1: Cell, cell2: Cell): boolean {
+//   return cell1.i === cell2.i && cell1.j === cell2.j;
+// }
+// function findKeyByContent(map: Map<Cell, any>, targetKey: Cell): boolean {
+//   for (const key of map.keys()) {
+//     if (areCellsEqual(key, targetKey)) {
+//       return true;
+//     }
+//   }
+//   return false;
+// }
+
 function makePit(i: number, j: number) {
   const bounds = board.getCellBounds(playerLocation, i, j);
   const pit = leaflet.rectangle(bounds) as leaflet.Layer;
@@ -121,10 +142,14 @@ function makePit(i: number, j: number) {
   // Momento! If we already have a cache in this location, load it. If not, save the new cache.
   const geocache = new Geocache(board.getCellForPoint(bounds.getNorthWest()));
   const key = board.getCellForPoint(bounds.getNorthWest());
-  if (!cacheMomento.has(key)) {
-    cacheMomento.set(key, geocache.toMomento());
+  const keyString = key.i + ":" + key.j;
+  // console.log("the key: ", keyString);
+  //if (!findKeyByContent(cacheMomento, key)) {
+  if (!cacheMomento.has(keyString)) {
+    // console.log(cacheMomento.get({ i: 369994, j: -1220539 }));
+    cacheMomento.set(keyString, geocache.toMomento());
   } else {
-    geocache.fromMomento(cacheMomento.get(key)!);
+    geocache.fromMomento(cacheMomento.get(keyString)!);
   }
 
   pit.bindPopup(() => {
@@ -164,10 +189,9 @@ function makePit(i: number, j: number) {
         );
         buttonsContainer.appendChild(collect);
       });
-      cacheMomento.set(
-        board.getCellForPoint(bounds.getNorthWest()),
-        geocache.toMomento()
-      );
+      const key = board.getCellForPoint(bounds.getNorthWest());
+      const keyString = key.i + ":" + key.j;
+      cacheMomento.set(keyString, geocache.toMomento());
 
       container.appendChild(buttonsContainer);
     }
@@ -182,6 +206,9 @@ function makePit(i: number, j: number) {
           "<br><br>";
       });
       statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
+      const key = board.getCellForPoint(bounds.getNorthWest());
+      const keyString = key.i + ":" + key.j;
+      cacheMomento.set(keyString, geocache.toMomento());
       saveData();
     }
 
@@ -191,13 +218,17 @@ function makePit(i: number, j: number) {
         geocache.coins.push(collectedCoinsList.pop()!);
         updateCollect();
         updateVal();
+        const key = board.getCellForPoint(bounds.getNorthWest());
+        const keyString = key.i + ":" + key.j;
+        cacheMomento.set(keyString, geocache.toMomento());
+        // console.log(cacheMomento);
+        // saveData();
       }
     });
-    cacheMomento.set(
-      board.getCellForPoint(bounds.getNorthWest()),
-      geocache.toMomento()
-    );
-
+    const key = board.getCellForPoint(bounds.getNorthWest());
+    const keyString = key.i + ":" + key.j;
+    cacheMomento.set(keyString, geocache.toMomento());
+    // saveData();
     return container;
   });
   pit.on("popupclose", () => {
@@ -275,7 +306,7 @@ reset.addEventListener("click", () => {
   collectedCoinsList = [];
   collectedCoinsString = "";
   statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
-
+  saveData();
   // makeMultiplePits();
 });
 
@@ -299,7 +330,7 @@ sensor.addEventListener("click", () => {
 });
 
 function getCurrentLocation() {
-  console.log("here, pop up open?", isPopupOpen);
+  // console.log("here, pop up open?", isPopupOpen);
   if (!isPopupOpen) {
     navigator.geolocation.getCurrentPosition((position) => {
       // console.log("watch pos", position.coords);
