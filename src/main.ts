@@ -14,6 +14,7 @@ const PIT_SPAWN_PROBABILITY = 0.1;
 const TILE_DEGREES = 1;
 const layerGroup = leaflet.layerGroup();
 let isPopupOpen = false;
+let cacheMomento = new Map<string, string>();
 
 interface LatLng {
   lat: number;
@@ -28,7 +29,7 @@ let playerLocation = {
 // Local storage
 // Making an interface of all the data we want to save
 interface SavedData {
-  savedMomentoMap: [String, string][]; // The string momento of the cache
+  savedMomentoMap: [string, string][]; // The string momento of the cache
   savedCollectedCoinsList: Geocoin[]; // The list of collected coins
   savedPlayerLocation: Cell; // The current location of the player
 }
@@ -73,7 +74,7 @@ function loadData() {
 loadData();
 playerLocation = mySavedData.savedPlayerLocation;
 let collectedCoinsList = mySavedData.savedCollectedCoinsList;
-let cacheMomento = new Map(mySavedData.savedMomentoMap);
+cacheMomento = new Map(mySavedData.savedMomentoMap);
 
 // Creating a board with cells
 const board = new Board(NEIGHBORHOOD_SIZE, GAMEPLAY_ZOOM_LEVEL);
