@@ -285,9 +285,11 @@ reset.addEventListener("click", () => {
   collectedCoinsList = [];
   collectedCoinsString = "";
   statusPanel.innerHTML = `Collected coins: ${collectedCoinsString}`;
+  clearInterval(interval);
   saveData();
 });
 
+let interval = 0;
 // Sensor button, gets the player's current location
 const sensor = document.querySelector<HTMLDivElement>("#sensor")!;
 sensor.addEventListener("click", () => {
@@ -295,16 +297,8 @@ sensor.addEventListener("click", () => {
   if (playerLocation.i == 369995 && playerLocation.j == -1220535) {
     playerLocations.pop();
   }
-  // Gets real time player location
-  //   map.locate({ setView: true, watch: true, enableHighAccuracy: true });
-  //   map.on("locationfound", (e: L.LocationEvent) => {
-  //     playerMarker.setLatLng([e.latlng.lat, e.latlng.lng]);
-  //     playerLocation = board.getCellForPoint(e.latlng);
-  //     makeMultiplePits();
-  //     playerLocations.push(board.getPointForCell(playerLocation));
-  //   });
   getCurrentLocation();
-  setInterval(getCurrentLocation, 1000);
+  interval = setInterval(getCurrentLocation, 1000);
 });
 
 function getCurrentLocation() {
